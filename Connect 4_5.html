@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="tr-TR">
+    <head>
+        <meta  http-equiv="content-type" content="text/html; charset=utf-8">
+        <title>Connect 4/5</title>
+
+        <script type="text/javascript" language="javascript">
+            function cmToPxW(cm)
+            {
+                var pxWidth = (cm*widthInPx)/widthInCm;
+                return pxWidth;
+            }
+
+            function cmToPxH(cm, transpose)
+            {
+                var pxHeight = ((cm*heightInPx)/heightInCm);
+                if(transpose)
+                    pxHeight = heightInPx - pxHeight;
+                
+                return pxHeight;
+            }
+
+            function placeCircle(y, find)
+            {   
+                if(y < column-1)
+                {
+                    if(filled[position][find] == 2)
+                    {
+                        drawPlayerCircle(ctxMid, cmToPxW(position*cellW+(cellW/2)), cmToPxH((y)*cellH+(cellH/2), true), pCircleR, colors[turn])
+                        filled[position][find] = turn;
+                        
+                        if(isItFinished(position, find) == true)
+                        {
+                            console.log("Merhaba");
+                        }
+                        
+                        return true;
+                    }else
+                    {
+                        return placeCircle(y+1, find-1);
+                    }
+                }
+                return false;
+            }
+
+            function drawBoard(ctx)
+            {
+                for(var y = 0; y < column-1; y++)
+                {
+                    for(var x = 0; x < column; x++)
+                    {
+                        drawSquare(ctx, cmToPxW(x*cellW), cmToPxH(y*cellH, true), cmToPxW(cellW), cmToPxH(cellH, false), "blue");
+                        drawCircle(ctx, cmToPxW(x*cellW+(cellW/2)), cmToPxH(y*cellH+(cellH/2), true), circleR);
+                    }
+                }
+
+            }
+
+            function drawSquare(ctx, x, y, w, h, color)
+            {
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y-h, w ,h);
+            }
+
+            function drawCircle(ctx, x, y, r)
+            {
+                var tut = ctx.globalCompositeOperation;
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, 2 * Math.PI);
+                ctx.fillStyle ="red";
+                ctx.fill();
+                ctx.stroke();
+                ctx.globalCompositeOperation = tut;
+            }
+
+            function drawPlayerCircle(ctx, x, y, r, color)
+            {
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, 2 * Math.PI);
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            function drawPosition(ctx)
+            {
+                if(prePosition >= 0)
+                {
+                    var x = cmToPxW(prePosition*cellW);
+                    ctx.clearRect(x, 0, cmToPxW(cellW), cmToPxH(cellH, false));
+                }
+                var x = cmToPxW(position*cellW+(cellW/2));
+                drawPlayerCircle(ctx, x, posY, pCircleR, colors[turn]);
+            }
+
+            function findColor(circleX, circleY)
+            {
+                if(circleX >= column || circleX < 0 || circleY >= column || circleY < 0)
+                {
+                    return 3;
+                }else
+                {
+                    return filled[circleX][circleY];
+                }
+            }
+
+            function findSameCCircle(circleX, circleY, moveX, moveY, find)
+            {
+                var total = 0;
+
+                while(findColor(circleX, circleY) == find)
+                {
+                    circleX += moveX;
+                    circleY += moveY;
+                    total++;
+                }
+                return total;
+            }
+
+            function isItFinished(circleX,circleY)
+            {
+                var directions=[[1, 0], [0, 1], [1, 1], [1, -1]];
+                var circleColor = filled[circleX][circleY];
+
+                for(var i=0; i<4; i++)
+                {   
+                    var colorCount = findSameCCircle(circleX, circleY, directions[i][0], directions[i][1], circleColor) + findSameCCircle(circleX, circleY, -1*directions[i][0], -1*directions[i][1], circleColor) - 1;
+                    
+                    if(colorCount >= target)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            function move(event)
+            {
+                prePosition = position;
+                
+                var key = event.keyCode;
+                console.log(key);
+                if(key == 39 && position < column-1)
+                {
+                    position++;
+                    drawPosition(ctxMid);
+                }
+                
+                if(key == 37 && position > 0)
+                {
+                    position--;
+                    drawPosition(ctxMid);
+                }
+
+                if(key == 13)
+                {
+                    if(placeCircle(0, column-1))
+                    {
+                        if(turn == 0)
+                        {
+                            turn++;
+                        }else
+                        {
+                            turn--;
+                        }
+                        drawPosition(ctxMid);
+                    }
+                    
+                }
+            }
+        </script>
+        
+    </head>
+    <body  onkeydown="move(event)">
+        <canvas id="CanvasTop" style="position: fixed; z-index:60 ;" width = "500" height="500"></canvas>
+        <canvas id="CanvasMid" style="position: fixed; z-index:59 ;" width = "500" height="500"></canvas>
+        <canvas id="CanvasBot" style="position: fixed; z-index:58 ; background-color: white; " width = "500" height="500"></canvas>
+        <script>
+            var widthInCm = 56;
+            var widthInPx = 500;
+            var heightInCm = 56;
+            var heightInPx = 500;
+            
+            var target = 4;
+            if(target == 4)
+            {
+                var column = 7;
+            }else
+            {
+                var column = 8;
+            }
+
+            var filled = [];
+            for(var cPosX = 0; cPosX < column; cPosX++)
+            {
+                filled[cPosX] = [];
+                for(var cPosY = 0; cPosY < column; cPosY++)
+                {
+                    filled[cPosX][cPosY]=2;
+                }
+            }
+
+            var cellW = widthInCm/column;
+            var cellH = heightInCm/column;
+            var circleR = Math.min(cmToPxW(cellW), cmToPxH(cellH, false)) * 0.43;
+            var pCircleR = Math.min(cmToPxW(cellW), cmToPxH(cellH, false)) * 0.5-2;
+
+            var colors = ["red", "yellow", "white"];
+            var turn = 0;
+            var position = 0;
+            var prePosition = -1;
+            var posY = cmToPxH((column-1)*cellH+(cellH/2), true);
+
+            var cTop = document.getElementById("CanvasTop");
+            var ctxTop = cTop.getContext("2d");
+            var cMid = document.getElementById("CanvasMid");
+            var ctxMid = cMid.getContext("2d");
+
+            drawBoard(ctxTop);
+            drawPosition(ctxMid);
+        </script>
+    </body>
+</html>
